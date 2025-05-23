@@ -1,12 +1,48 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+  FunctionDeclaration,
+  Part,
+  SchemaType,
+} from '@google/generative-ai';
+
+// Define the structure for function call parts and results
+export interface GeminiFunctionCall {
+  name: string;
+  args: Record<string, any>;
+}
+
+export interface GeminiToolResponse {
+  name: string;
+  response: Record<string, any>;
+}
 
 @Injectable()
 export class GeminiService {
   private readonly logger = new Logger(GeminiService.name);
   private genAI: GoogleGenerativeAI;
   private model;
+
+  // Define the function/tool for Gemini
+  private readonly tools: FunctionDeclaration[] = [
+    {
+      name: 'get_current_weather',
+      description: 'Get the current weather forecast for a given location (city name). Use this tool whenever a user asks about the weather.',
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          location: {
+            type: SchemaType.STRING,
+            description: 'The city and state, or city and country, e.g., San Francisco, CA or London, UK. Be specific if the user provides details.',
+          },
+        },
+        required: ['location'],
+      },
+    },
+  ];
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
@@ -16,10 +52,16 @@ export class GeminiService {
     }
     this.genAI = new GoogleGenerativeAI(apiKey);
 
-    // For chat, use a specific model like 'gemini-pro' or a newer one if available
-    // For text generation, you can also use 'gemini-pro'
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
-    this.logger.log('GeminiService initialized with model: gemini-pro');
+    // Use a model that supports function calling, e.g., 'gemini-1.5-flash' or 'gemini-pro' (check latest docs)
+    this.model = this.genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash-latest', // Updated to a model known for function calling
+      tools: [{ functionDeclarations: this.tools }],
+      systemInstruction: 
+        "You are a helpful assistant. When asked about the weather, you must use the 'get_current_weather' tool to get the information. " +
+        "Do not try to answer weather questions from your own knowledge. Always use the tool. " +
+        "If the user asks a general question, answer it directly.",
+    });
+    this.logger.log('GeminiService initialized with model: gemini-1.5-flash-latest, tools, and system instruction');
   }
 
   async generateText(prompt: string): Promise<string> {
@@ -36,39 +78,76 @@ export class GeminiService {
     }
   }
 
-  async startChat(history?: any[]) {
-    // TODO: Implement chat history management if needed
-    // For now, we get a fresh chat session each time this might be called
-    // or use a model that supports direct chat turns without an explicit chat session object
+  async startChat(history?: Part[]) {
     return this.model.startChat({
       history: history || [],
-      // Safety settings can be adjusted here
       safetySettings: [
-        {
-          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        },
-        {
-          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        },
+        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
       ],
     });
   }
 
-  async sendMessageInChat(chatSession, message: string): Promise<string> {
-    this.logger.debug(`Sending message in chat: ${message.substring(0,50)}...`);
+  async sendMessageInChat(
+    chatSession,
+    message: string,
+  ): Promise<{ text?: string; functionCall?: GeminiFunctionCall; toolResponses?: GeminiToolResponse[] }> {
+    this.logger.debug(`Sending message in chat: ${message.substring(0, 50)}...`);
     try {
       const result = await chatSession.sendMessage(message);
       const response = result.response;
+      const firstCandidate = response.candidates?.[0];
+
+      if (firstCandidate?.content?.parts) {
+        for (const part of firstCandidate.content.parts) {
+          if (part.functionCall) {
+            this.logger.log('Gemini requested function call:', part.functionCall);
+            return { functionCall: part.functionCall as GeminiFunctionCall };
+          }
+        }
+      }
+
       const text = response.text();
-      this.logger.debug('Chat response received successfully.');
-      return text;
+      this.logger.debug('Chat response received (text): successfully.');
+      return { text };
     } catch (error) {
       this.logger.error(`Error sending message in Gemini chat: ${error.message}`, error.stack);
       throw new Error(`Failed to send message in Gemini chat: ${error.message}`);
     }
   }
 
-  // You might want to add more sophisticated chat handling, including history management.
+  async sendToolResponseToChat(
+    chatSession,
+    toolResponses: GeminiToolResponse[],
+  ): Promise<{ text?: string; functionCall?: GeminiFunctionCall }> {
+    this.logger.debug('Sending tool response to Gemini chat:', toolResponses);
+    try {
+      const result = await chatSession.sendMessage(
+        // Construct the specific Part structure Gemini expects for tool responses
+        toolResponses.map(toolResponse => ({
+          functionResponse: {
+            name: toolResponse.name,
+            response: toolResponse.response,
+          },
+        }))
+      );
+      const response = result.response;
+      // Check for another function call or get the text
+      const firstCandidate = response.candidates?.[0];
+      if (firstCandidate?.content?.parts) {
+        for (const part of firstCandidate.content.parts) {
+          if (part.functionCall) {
+            this.logger.log('Gemini requested another function call:', part.functionCall);
+            return { functionCall: part.functionCall as GeminiFunctionCall };
+          }
+        }
+      }
+      const text = response.text();
+      this.logger.debug('Final text response after tool use received successfully.');
+      return { text };
+    } catch (error) {
+      this.logger.error('Error sending tool response to Gemini chat:', error.stack);
+      throw new Error('Failed to send tool response to Gemini chat');
+    }
+  }
 } 

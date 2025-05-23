@@ -2,7 +2,9 @@ import { WebSocketGateway, SubscribeMessage, MessageBody, ConnectedSocket, WebSo
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { WeatherService } from './weather.service';
-import { GeminiService } from '../gemini/gemini.service';
+import { GeminiService, GeminiFunctionCall, GeminiToolResponse } from '../gemini/gemini.service';
+import { GeocodingService } from '../geocoding/geocoding.service';
+import { Part } from '@google/generative-ai';
 
 interface WeatherRequestPayload {
   latitude: string;
@@ -11,7 +13,7 @@ interface WeatherRequestPayload {
 
 interface ChatRequestPayload {
   message: string;
-  history?: any[]; // Optional: if client manages history and sends it
+  history?: Part[];
 }
 
 // You can specify a port and namespace, or let it use the default HTTP server port
@@ -35,6 +37,7 @@ export class McpGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
   constructor(
     private readonly weatherService: WeatherService,
     private readonly geminiService: GeminiService,
+    private readonly geocodingService: GeocodingService,
   ) {}
 
   afterInit(server: Server) {
@@ -43,20 +46,11 @@ export class McpGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 
   handleConnection(client: Socket, ...args: any[]) {
     this.logger.log(`Client connected: ${client.id}`);
-    // Initialize a chat session for the new client
-    // this.geminiService.startChat().then(session => {
-    //   this.clientChatSessions.set(client.id, session);
-    //   this.logger.log(`Chat session started for client ${client.id}`);
-    //   client.emit('chat_session_started', { message: 'Chat session ready.' });
-    // }).catch(err => {
-    //   this.logger.error(`Failed to start chat session for ${client.id}`, err);
-    //   client.emit('chat_error', { error: 'Could not start chat session.' });
-    // });
+    // Chat session will be started on first message to handle history correctly
   }
 
   handleDisconnect(client: Socket) {
     this.logger.log(`Client disconnected: ${client.id}`);
-    // Clean up chat session for the disconnected client
     this.clientChatSessions.delete(client.id);
     this.logger.log(`Chat session ended for client ${client.id}`);
   }
@@ -95,40 +89,72 @@ export class McpGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
   async handleSendChatMessage(
     @MessageBody() data: ChatRequestPayload,
     @ConnectedSocket() client: Socket,
-  ): Promise<void> { // Using void as we'll emit directly
+  ): Promise<void> {
     this.logger.log(
       `Received 'send_chat_message' from client ${client.id} with message: "${data.message}"`,
     );
-
     if (!data || !data.message || data.message.trim() === '') {
-      this.logger.warn(`Empty chat message received from client ${client.id}`);
-      client.emit('chat_error', { error: 'Cannot send an empty message.'});
+      client.emit('chat_error', { error: 'Cannot send an empty message.' });
       return;
     }
 
     try {
-      // Get or create a chat session for the client
-      // For simplicity, we are starting a new chat for each message if session doesn't exist.
-      // A more robust implementation would manage sessions across multiple messages.
       let chatSession = this.clientChatSessions.get(client.id);
       if (!chatSession) {
-        this.logger.log(`No existing chat session for ${client.id}, starting a new one.`);
-        // Pass client-provided history if available and your GeminiService supports it
-        chatSession = await this.geminiService.startChat(data.history);
+        this.logger.log(`Starting new chat session for ${client.id}`);
+        chatSession = await this.geminiService.startChat(data.history || []);
         this.clientChatSessions.set(client.id, chatSession);
-        this.logger.log(`New chat session started and stored for client ${client.id}`);
-      } else {
-        this.logger.log(`Using existing chat session for client ${client.id}`);
       }
-      
-      const geminiResponseText = await this.geminiService.sendMessageInChat(chatSession, data.message);
-      this.logger.log(`Gemini response for client ${client.id}: "${geminiResponseText}"`);
 
-      client.emit('chat_response', {
-        sender: 'bot',
-        message: geminiResponseText,
-        // You might want to send back updated history or other metadata
-      });
+      let geminiResponse = await this.geminiService.sendMessageInChat(chatSession, data.message);
+
+      // Loop to handle potential multiple function calls (though typically one at a time)
+      while (geminiResponse.functionCall) {
+        const functionCall = geminiResponse.functionCall;
+        let toolResponseData: any;
+
+        if (functionCall.name === 'get_current_weather') {
+          const location = functionCall.args.location;
+          this.logger.log(`Tool call: get_current_weather for location: ${location}`);
+          const coords = await this.geocodingService.getCoordinates(location);
+          if (coords) {
+            const weather = await this.weatherService.getForecast(coords.latitude, coords.longitude);
+            // We might want to summarize or select specific parts of the weather for Gemini
+            // For now, sending a summary. Gemini might get overwhelmed by the full forecast array.
+            const weatherSummary = weather && weather.length > 0 
+              ? `Current conditions for ${coords.displayName}: ${weather[0].shortForecast}, Temperature: ${weather[0].temperature}${weather[0].temperatureUnit}`
+              : 'Could not retrieve detailed weather.';
+            toolResponseData = { weather: weatherSummary }; 
+          } else {
+            toolResponseData = { error: `Could not find coordinates for ${location}.` };
+          }
+        } else {
+          this.logger.warn(`Unknown function call requested: ${functionCall.name}`);
+          toolResponseData = { error: `Unknown tool: ${functionCall.name}` };
+        }
+
+        const toolResponses: GeminiToolResponse[] = [{
+          name: functionCall.name,
+          response: toolResponseData,
+        }];
+
+        geminiResponse = await this.geminiService.sendToolResponseToChat(chatSession, toolResponses);
+      }
+
+      if (geminiResponse.text) {
+        this.logger.log(`Final Gemini response for client ${client.id}: "${geminiResponse.text}"`);
+        client.emit('chat_response', {
+          sender: 'bot',
+          message: geminiResponse.text,
+        });
+      } else {
+        this.logger.warn(`No text response from Gemini after potential tool calls for client ${client.id}`);
+        client.emit('chat_response', {
+          sender: 'bot',
+          message: "I couldn't process that request fully, but I'm here!"
+        });
+      }
+
     } catch (error) {
       this.logger.error(`Error processing chat message for client ${client.id}: ${error.message}`, { message: data.message, error });
       client.emit('chat_error', {

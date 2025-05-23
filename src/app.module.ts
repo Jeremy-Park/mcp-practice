@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { WeatherModule } from './weather/weather.module';
 import { GeminiModule } from './gemini/gemini.module';
+import { GeocodingModule } from './geocoding/geocoding.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { GeminiModule } from './gemini/gemini.module';
     }),
     WeatherModule,
     GeminiModule,
+    GeocodingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
