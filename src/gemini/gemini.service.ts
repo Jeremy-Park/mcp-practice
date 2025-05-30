@@ -27,13 +27,13 @@ export class GeminiService {
     parts: [
       {
         text:
-          "You are a helpful assistant. " +
+          'You are a helpful assistant. ' +
           "When asked about the weather, you must use the 'get_current_weather' tool. " +
           "When asked about the user's current location, you must use the 'get_user_location' tool. " +
-          "Always use the appropriate tool. " +
-          "If a tool needs additional information, check if there are other tools that can provide the required information. " +
-          "You can use multiple tools in a single response. " +
-          "If the user asks a general question, answer it directly.",
+          'Always use the appropriate tool. ' +
+          'If a tool needs additional information, check if there are other tools that can provide the required information. ' +
+          'You can use multiple tools in a single response. ' +
+          'If the user asks a general question, answer it directly.',
       },
     ],
   };
@@ -71,6 +71,53 @@ export class GeminiService {
       name: GeminiToolName.GET_USER_LOCATION,
       description:
         "Get the user's location. This tool returns city, state, country, and latitude and longitude for user location. Use this tool whenever you need to know the user's location.",
+    },
+    {
+      name: GeminiToolName.GET_ANIME_BY_ID,
+      description: 'Get anime details by its MyAnimeList ID.',
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          id: {
+            type: Type.NUMBER,
+            description: 'The MyAnimeList ID of the anime.',
+          },
+        },
+        required: ['id'],
+      },
+    },
+    {
+      name: GeminiToolName.GET_ANIME_SEARCH,
+      description: 'Search for anime by query string.',
+      // TODO: Add more params
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          query: {
+            type: Type.STRING,
+            description: 'The search query for the anime.',
+          },
+        },
+        required: ['query'],
+      },
+    },
+    {
+      name: GeminiToolName.GET_ANIME_PICTURES,
+      description: 'Get pictures for an anime by its MyAnimeList ID.',
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          id: {
+            type: Type.NUMBER,
+            description: 'The MyAnimeList ID of the anime.',
+          },
+        },
+        required: ['id'],
+      },
+    },
+    {
+      name: GeminiToolName.GET_TOP_ANIME,
+      description: 'Get the top anime series.',
     },
   ];
 
