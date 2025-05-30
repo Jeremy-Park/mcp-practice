@@ -1,4 +1,4 @@
-import { ChatSession } from '@google/generative-ai';
+import { Chat } from '@google/genai';
 import { Injectable, Logger } from '@nestjs/common';
 
 // ----------------------------------------------------------------------
@@ -8,14 +8,14 @@ import { Injectable, Logger } from '@nestjs/common';
 @Injectable()
 export class SessionService {
   private readonly logger = new Logger(SessionService.name);
-  private clientChatSessions: Map<string, ChatSession> = new Map();
+  private clientChatSessions: Map<string, Chat> = new Map();
 
   constructor() {
     this.logger.log('SessionService: constructor');
   }
 
   // Create a new session for a client
-  createSession(clientId: string, session: ChatSession): void {
+  createSession(clientId: string, session: Chat): void {
     this.logger.log(`createSession: ${clientId}`);
     this.clientChatSessions.set(clientId, session);
   }
@@ -27,7 +27,7 @@ export class SessionService {
   }
 
   // Get a session for a client
-  getSession(clientId: string): ChatSession | undefined {
+  getSession(clientId: string): Chat | undefined {
     this.logger.debug(`getSession: ${clientId}`);
     return this.clientChatSessions.get(clientId);
   }

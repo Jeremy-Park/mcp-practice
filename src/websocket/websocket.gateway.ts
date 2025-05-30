@@ -110,8 +110,11 @@ export class WebsocketGateway
 
     // Hardcoded coordinates for testing
     return {
+      city: 'New York',
+      country: 'USA',
       latitude: 40.799603422290936,
       longitude: -73.96199064785066,
+      state: 'New York',
     };
   }
 

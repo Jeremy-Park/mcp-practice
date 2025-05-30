@@ -1,4 +1,4 @@
-import { Content } from '@google/generative-ai';
+import { Content } from '@google/genai';
 
 // ----------------------------------------------------------------------
 
