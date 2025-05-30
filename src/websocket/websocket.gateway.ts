@@ -11,7 +11,11 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GeminiService } from '../gemini/gemini.service';
-import { GeminiFunctionCall, GeminiToolResponse } from '../gemini/gemini.types';
+import {
+  GeminiFunctionCall,
+  GeminiToolName,
+  GeminiToolResponse,
+} from '../gemini/gemini.types';
 import { GeocodingService } from '../geocoding/geocoding.service';
 import { SessionService } from '../session/session.service';
 import { WeatherService } from '../weather/weather.service';
@@ -99,6 +103,18 @@ export class WebsocketGateway
     return { weather: weatherSummary };
   }
 
+  async handleGetUserLocation(): Promise<Record<string, any>> {
+    this.logger.log(
+      'WebsocketGateway: handleGetUserLocation: returning hardcoded coordinates',
+    );
+
+    // Hardcoded coordinates for testing
+    return {
+      latitude: 40.799603422290936,
+      longitude: -73.96199064785066,
+    };
+  }
+
   @SubscribeMessage('send_chat_message')
   async handleSendChatMessage(
     @MessageBody() data: ChatRequestPayload,
@@ -135,8 +151,12 @@ export class WebsocketGateway
         let toolResponseData: any;
 
         // Get weather
-        if (functionCall.name === 'get_current_weather') {
+        if (functionCall.name === GeminiToolName.GET_CURRENT_WEATHER) {
           toolResponseData = await this.handleGetWeather(functionCall);
+        }
+        // Get mock user coordinates
+        else if (functionCall.name === GeminiToolName.GET_USER_LOCATION) {
+          toolResponseData = await this.handleGetUserLocation();
         }
         // Unsupported tools
         else {

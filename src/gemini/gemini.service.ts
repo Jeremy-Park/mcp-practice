@@ -11,7 +11,11 @@ import {
 } from '@google/generative-ai';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GeminiFunctionCall, GeminiToolResponse } from './gemini.types';
+import {
+  GeminiFunctionCall,
+  GeminiToolName,
+  GeminiToolResponse,
+} from './gemini.types';
 
 // ----------------------------------------------------------------------
 
@@ -24,7 +28,7 @@ export class GeminiService {
   // Define the function/tool for Gemini
   private readonly tools: FunctionDeclaration[] = [
     {
-      name: 'get_current_weather',
+      name: GeminiToolName.GET_CURRENT_WEATHER,
       description:
         'Get the current weather forecast for a given location (city name). Use this tool whenever a user asks about the weather.',
       parameters: {
@@ -38,6 +42,11 @@ export class GeminiService {
         },
         required: ['location'],
       },
+    },
+    {
+      name: GeminiToolName.GET_USER_LOCATION,
+      description:
+        "Get the user's location in coordinates. This tool returns latitude and longitude for user location. Use this tool whenever you need to know the user's location.",
     },
   ];
 
