@@ -12,6 +12,10 @@ export class WeatherService {
   constructor(private readonly httpService: HttpService) {}
 
   async getForecast(latitude: string, longitude: string): Promise<any> {
+    this.logger.log(
+      `WEATHERSERVICE WEATHERSERVICE WEATHERSERVICE WEATHERSERVICE WEATHERSERVICE WEATHERSERVICE WEATHERSERVICE `,
+    );
+
     const pointsUrl = `${this.weatherGovApiBase}/points/${latitude},${longitude}`;
     this.logger.debug(`Fetching grid points from: ${pointsUrl}`);
 
@@ -24,7 +28,10 @@ export class WeatherService {
 
       const forecastUrl = pointsResponse.data?.properties?.forecast;
       if (!forecastUrl) {
-        this.logger.error('Could not retrieve forecast URL from points response', pointsResponse.data);
+        this.logger.error(
+          'Could not retrieve forecast URL from points response',
+          pointsResponse.data,
+        );
         throw new Error('Could not retrieve forecast URL.');
       }
 
@@ -46,13 +53,18 @@ export class WeatherService {
             url: axiosError.config?.url,
             status: axiosError.response?.status,
             data: axiosError.response?.data,
-          }
+          },
         );
       } else {
-        this.logger.error(`Error fetching weather data: ${error.message}`, error.stack);
+        this.logger.error(
+          `Error fetching weather data: ${error.message}`,
+          error.stack,
+        );
       }
       // Rethrow or return a custom error object
-      throw new Error(`Failed to fetch weather forecast: ${axiosError.message || error.message}`);
+      throw new Error(
+        `Failed to fetch weather forecast: ${axiosError.message || error.message}`,
+      );
     }
   }
-} 
+}

@@ -1,6 +1,7 @@
 import {
   Chat,
   Content,
+  FunctionCallingConfigMode,
   FunctionDeclaration,
   GoogleGenAI,
   HarmBlockThreshold,
@@ -26,14 +27,40 @@ export class GeminiService {
   private readonly systemInstructionContent: Content = {
     parts: [
       {
-        text:
-          'You are a helpful assistant. ' +
-          "When asked about the weather, you must use the 'get_current_weather' tool. " +
-          "When asked about the user's current location, you must use the 'get_user_location' tool. " +
-          'Always use the appropriate tool. ' +
-          'If a tool needs additional information, check if there are other tools that can provide the required information. ' +
-          'You can use multiple tools in a single response. ' +
-          'If the user asks a general question, answer it directly.',
+        text: 'You are a helpful assistant.',
+      },
+      {
+        text: "When asked about the user's current location, you must use the 'get_user_location' tool.",
+      },
+      {
+        text: "When asked about the weather, you must use the 'get_current_weather' tool.",
+      },
+      {
+        text: "When asked about anime, you must use the 'get_anime_by_id' tool.",
+      },
+      {
+        text: "When asked about anime search, you must use the 'get_anime_search' tool.",
+      },
+      {
+        text: "When asked about anime pictures, you must use the 'get_anime_pictures' tool.",
+      },
+      {
+        text: "When asked about top anime, you must use the 'get_top_anime' tool.",
+      },
+      {
+        text: "Don't try to answer with your own knowledge, if it's about weather or anime, you must use the appropriate tool.",
+      },
+      {
+        text: 'Always use the appropriate tool.',
+      },
+      {
+        text: 'If a tool needs additional information, check if there are other tools that can provide the required information.',
+      },
+      {
+        text: 'You can use multiple tools in a single response.',
+      },
+      {
+        text: 'If the user asks a general question, answer it directly.',
       },
     ],
   };
@@ -121,8 +148,6 @@ export class GeminiService {
     },
   ];
 
-  private readonly toolList;
-
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     if (!apiKey) {
@@ -130,9 +155,6 @@ export class GeminiService {
       throw new Error('GEMINI_API_KEY is not configured.');
     }
     this.genAI = new GoogleGenAI({ apiKey });
-
-    // Initialize toolList after tools is defined
-    this.toolList = [{ functionDeclarations: this.tools }];
 
     this.logger.log(
       `GeminiService initialized and configured for model: ${this.modelName}`,
@@ -144,14 +166,22 @@ export class GeminiService {
       `Generating text for prompt: ${prompt.substring(0, 50)}...`,
     );
     try {
-      const request = {
-        model: this.modelName,
+      const result = await this.genAI.models.generateContent({
         contents: [{ parts: [{ text: prompt }], role: 'user' }],
-        tools: this.toolList,
-        systemInstruction: this.systemInstructionContent,
-        safetySettings: this.safetySettings,
-      };
-      const result = await this.genAI.models.generateContent(request);
+        config: {
+          systemInstruction: this.systemInstructionContent,
+          safetySettings: this.safetySettings,
+          toolConfig: {
+            functionCallingConfig: {
+              // Force it to call any function
+              mode: FunctionCallingConfigMode.AUTO,
+              // allowedFunctionNames: [GeminiToolName.GET_CURRENT_WEATHER],
+            },
+          },
+          tools: [{ functionDeclarations: this.tools }],
+        },
+        model: this.modelName,
+      });
       const text = result.text;
       if (text === undefined) {
         this.logger.warn('Gemini response text is undefined.');
@@ -175,14 +205,21 @@ export class GeminiService {
    * @returns A promise that resolves to a ChatSession object (type inferred).
    */
   async startChat(history?: Content[]) {
-    const params = {
+    return this.genAI.chats.create({
+      config: {
+        systemInstruction: this.systemInstructionContent,
+        safetySettings: this.safetySettings,
+        toolConfig: {
+          functionCallingConfig: {
+            mode: FunctionCallingConfigMode.AUTO,
+            // allowedFunctionNames: [GeminiToolName.GET_CURRENT_WEATHER],
+          },
+        },
+        tools: [{ functionDeclarations: this.tools }],
+      },
       model: this.modelName,
       history,
-      safetySettings: this.safetySettings,
-      tools: this.toolList,
-      systemInstruction: this.systemInstructionContent,
-    };
-    return this.genAI.chats.create(params);
+    });
   }
 
   async sendMessageInChat(
