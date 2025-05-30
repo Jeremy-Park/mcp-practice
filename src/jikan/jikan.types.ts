@@ -97,3 +97,18 @@ export interface AnimePicture {
     image_url: string;
   };
 }
+
+export enum AnimeSearchStatus {
+  AIRING = 'airing',
+  COMPLETE = 'complete',
+  UPCOMING = 'upcoming',
+  // As per Jikan docs, other general types like tv, movie, ova, special, bypopularity, favorite are also valid for q filter, but the user specifically asked for these three for status enum.
+  // We might want to create a separate enum or extend this if we add more specific status filters later.
+}
+
+export enum TopAnimeFilter {
+  AIRING = 'airing',
+  UPCOMING = 'upcoming',
+  BY_POPULARITY = 'bypopularity',
+  FAVORITE = 'favorite',
+}

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JikanQuery } from './jikan.query';
-import { Anime, AnimePicture, JikanApiResponse } from './jikan.types';
+import { Anime, AnimePicture, JikanApiResponse, AnimeSearchStatus, TopAnimeFilter } from './jikan.types';
 
 @Injectable()
 export class JikanService {
@@ -13,9 +13,9 @@ export class JikanService {
     return this.jikanQuery.getAnimeById(id);
   }
 
-  async getAnimeSearch(query: string): Promise<JikanApiResponse<Anime[]>> {
-    this.logger.debug(`Searching anime with query: ${query}`);
-    return this.jikanQuery.getAnimeSearch(query);
+  async getAnimeSearch(query: string, status?: AnimeSearchStatus): Promise<JikanApiResponse<Anime[]>> {
+    this.logger.debug(`Searching anime with query: ${query} and status: ${status}`);
+    return this.jikanQuery.getAnimeSearch(query, status);
   }
 
   async getAnimePictures(id: number): Promise<JikanApiResponse<AnimePicture[]>> {
@@ -23,8 +23,8 @@ export class JikanService {
     return this.jikanQuery.getAnimePictures(id);
   }
 
-  async getTopAnime(): Promise<JikanApiResponse<Anime[]>> {
-    this.logger.debug('Fetching top anime');
-    return this.jikanQuery.getTopAnime();
+  async getTopAnime(filter?: TopAnimeFilter): Promise<JikanApiResponse<Anime[]>> {
+    this.logger.debug(`Fetching top anime with filter: ${filter}`);
+    return this.jikanQuery.getTopAnime(filter);
   }
 } 

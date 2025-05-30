@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 import { JIKAN_API_BASE_URL } from './jikan.constants';
-import { Anime, AnimePicture, JikanApiResponse } from './jikan.types';
+import { Anime, AnimePicture, JikanApiResponse, AnimeSearchStatus, TopAnimeFilter } from './jikan.types';
 
 @Injectable()
 export class JikanQuery {
@@ -30,15 +30,23 @@ export class JikanQuery {
     return this.get<Anime>(`/anime/${id}`);
   }
 
-  async getAnimeSearch(query: string): Promise<JikanApiResponse<Anime[]>> {
-    return this.get<Anime[]>('/anime', { q: query });
+  async getAnimeSearch(query: string, status?: AnimeSearchStatus): Promise<JikanApiResponse<Anime[]>> {
+    const params: Record<string, any> = { q: query };
+    if (status) {
+      params.status = status;
+    }
+    return this.get<Anime[]>('/anime', params);
   }
 
   async getAnimePictures(id: number): Promise<JikanApiResponse<AnimePicture[]>> {
     return this.get<AnimePicture[]>(`/anime/${id}/pictures`);
   }
 
-  async getTopAnime(): Promise<JikanApiResponse<Anime[]>> {
-    return this.get<Anime[]>('/top/anime');
+  async getTopAnime(filter?: TopAnimeFilter): Promise<JikanApiResponse<Anime[]>> {
+    const params: Record<string, any> = {};
+    if (filter) {
+      params.filter = filter;
+    }
+    return this.get<Anime[]>('/top/anime', params);
   }
 } 

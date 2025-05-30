@@ -48,6 +48,9 @@ export class GeminiService {
         text: "When asked about top anime, you must use the 'get_top_anime' tool.",
       },
       {
+        text: "When answering using 'get_top_anime' tool, you must format the response in a markdown format. For each anime, display its rank, title (bold), synopsis (italic), and image (using markdown image syntax ![title Image](imageUrl)). Separate each anime entry with a horizontal rule (---). Start the list with a heading '### Top Anime List'.",
+      },
+      {
         text: "Don't try to answer with your own knowledge, if it's about weather or anime, you must use the appropriate tool.",
       },
       {
@@ -115,7 +118,8 @@ export class GeminiService {
     },
     {
       name: GeminiToolName.GET_ANIME_SEARCH,
-      description: 'Search for anime by query string.',
+      description:
+        'Search for anime by query string. Can optionally filter by status.',
       // TODO: Add more params
       parameters: {
         type: Type.OBJECT,
@@ -123,6 +127,13 @@ export class GeminiService {
           query: {
             type: Type.STRING,
             description: 'The search query for the anime.',
+          },
+          status: {
+            type: Type.STRING,
+            description:
+              "Filter by anime status. Available values: 'airing', 'complete', 'upcoming'.",
+            enum: ['airing', 'complete', 'upcoming'],
+            nullable: true,
           },
         },
         required: ['query'],
@@ -144,7 +155,18 @@ export class GeminiService {
     },
     {
       name: GeminiToolName.GET_TOP_ANIME,
-      description: 'Get the top anime series.',
+      description: 'Get the top anime series, optionally filtered by a specific criterion.',
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          filter: {
+            type: Type.STRING,
+            description: "Filter criteria for top anime. Available values: 'airing', 'upcoming', 'bypopularity', 'favorite'.",
+            enum: ['airing', 'upcoming', 'bypopularity', 'favorite'],
+            nullable: true,
+          },
+        },
+      },
     },
   ];
 

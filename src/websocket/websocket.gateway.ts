@@ -175,10 +175,11 @@ export class WebsocketGateway
         // Jikan: Get Anime Search
         else if (functionCall.name === GeminiToolName.GET_ANIME_SEARCH) {
           this.logger.log(
-            `WebsocketGateway: handleSendChatMessage: tool call get_anime_search for query: ${functionCall.args.query}`,
+            `WebsocketGateway: handleSendChatMessage: tool call get_anime_search for query: ${functionCall.args.query}, status: ${functionCall.args.status}`,
           );
           toolResponseData = await this.jikanService.getAnimeSearch(
             functionCall.args.query,
+            functionCall.args.status,
           );
         }
         // Jikan: Get Anime Pictures
@@ -193,9 +194,11 @@ export class WebsocketGateway
         // Jikan: Get Top Anime
         else if (functionCall.name === GeminiToolName.GET_TOP_ANIME) {
           this.logger.log(
-            `WebsocketGateway: handleSendChatMessage: tool call get_top_anime`,
+            `WebsocketGateway: handleSendChatMessage: tool call get_top_anime with filter: ${functionCall.args.filter}`,
           );
-          toolResponseData = await this.jikanService.getTopAnime();
+          toolResponseData = await this.jikanService.getTopAnime(
+            functionCall.args.filter,
+          );
         }
         // Unsupported tools
         else {
