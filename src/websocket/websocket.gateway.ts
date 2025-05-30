@@ -17,6 +17,7 @@ import {
   GeminiToolResponse,
 } from '../gemini/gemini.types';
 import { GeocodingService } from '../geocoding/geocoding.service';
+import { JikanService } from '../jikan/jikan.service';
 import { SessionService } from '../session/session.service';
 import { WeatherService } from '../weather/weather.service';
 import { ChatRequestPayload } from './websocket.types';
@@ -44,6 +45,7 @@ export class WebsocketGateway
     private readonly geminiService: GeminiService,
     private readonly geocodingService: GeocodingService,
     private readonly sessionService: SessionService,
+    private readonly jikanService: JikanService,
   ) {}
 
   afterInit() {
@@ -160,6 +162,40 @@ export class WebsocketGateway
         // Get mock user coordinates
         else if (functionCall.name === GeminiToolName.GET_USER_LOCATION) {
           toolResponseData = await this.handleGetUserLocation();
+        }
+        // Jikan: Get Anime By ID
+        else if (functionCall.name === GeminiToolName.GET_ANIME_BY_ID) {
+          this.logger.log(
+            `WebsocketGateway: handleSendChatMessage: tool call get_anime_by_id for ID: ${functionCall.args.id}`,
+          );
+          toolResponseData = await this.jikanService.getAnimeById(
+            functionCall.args.id,
+          );
+        }
+        // Jikan: Get Anime Search
+        else if (functionCall.name === GeminiToolName.GET_ANIME_SEARCH) {
+          this.logger.log(
+            `WebsocketGateway: handleSendChatMessage: tool call get_anime_search for query: ${functionCall.args.query}`,
+          );
+          toolResponseData = await this.jikanService.getAnimeSearch(
+            functionCall.args.query,
+          );
+        }
+        // Jikan: Get Anime Pictures
+        else if (functionCall.name === GeminiToolName.GET_ANIME_PICTURES) {
+          this.logger.log(
+            `WebsocketGateway: handleSendChatMessage: tool call get_anime_pictures for ID: ${functionCall.args.id}`,
+          );
+          toolResponseData = await this.jikanService.getAnimePictures(
+            functionCall.args.id,
+          );
+        }
+        // Jikan: Get Top Anime
+        else if (functionCall.name === GeminiToolName.GET_TOP_ANIME) {
+          this.logger.log(
+            `WebsocketGateway: handleSendChatMessage: tool call get_top_anime`,
+          );
+          toolResponseData = await this.jikanService.getTopAnime();
         }
         // Unsupported tools
         else {
