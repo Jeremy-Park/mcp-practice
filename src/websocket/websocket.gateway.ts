@@ -1,4 +1,3 @@
-import { Content } from '@google/generative-ai';
 import { Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
@@ -12,17 +11,13 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GeminiService } from '../gemini/gemini.service';
-import { GeminiToolResponse } from '../gemini/gemini.types';
+import { GeminiFunctionCall, GeminiToolResponse } from '../gemini/gemini.types';
 import { GeocodingService } from '../geocoding/geocoding.service';
 import { SessionService } from '../session/session.service';
 import { WeatherService } from '../weather/weather.service';
+import { ChatRequestPayload } from './websocket.types';
 
 // ----------------------------------------------------------------------
-
-interface ChatRequestPayload {
-  message: string;
-  history?: Content[];
-}
 
 // You can specify a port and namespace, or let it use the default HTTP server port
 // @WebSocketGateway(3001, { namespace: 'mcp', cors: { origin: '*' } })
@@ -60,13 +55,57 @@ export class WebsocketGateway
     this.sessionService.deleteSession(client.id);
   }
 
+  async handleGetWeather(
+    functionCall: GeminiFunctionCall,
+  ): Promise<Record<string, any>> {
+    // Get location
+    const location = functionCall.args.location;
+    this.logger.log(
+      `WebsocketGateway: handleSendChatMessage: tool call get_current_weather for location: ${location}`,
+    );
+
+    // Get coordinates
+    const coords = await this.geocodingService.getCoordinates(location);
+    if (!coords) {
+      this.logger.log(
+        `WebsocketGateway: handleGetWeather: no coordinates found for location: ${location}`,
+      );
+      return {
+        error: `Could not find coordinates for ${location}.`,
+      };
+    }
+
+    // Get weather
+    const weathers = await this.weatherService.getForecast(
+      coords.latitude,
+      coords.longitude,
+    );
+
+    const weather = weathers[0];
+    if (!weather) {
+      this.logger.log(
+        `WebsocketGateway: handleGetWeather: no weather found for location: ${location}`,
+      );
+      return {
+        error: `Could not find weather for ${location}.`,
+      };
+    }
+
+    // Create weather summary
+    // Gemini might get overwhelmed by the full forecast array.
+    // TODO: Return more detailed weather information
+    const weatherSummary = `Current conditions for ${coords.displayName}: ${weather.shortForecast}, Temperature: ${weather.temperature}${weather.temperatureUnit}`;
+
+    return { weather: weatherSummary };
+  }
+
   @SubscribeMessage('send_chat_message')
   async handleSendChatMessage(
     @MessageBody() data: ChatRequestPayload,
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
     this.logger.log(
-      `Received 'send_chat_message' from client ${client.id} with message: "${data.message}"`,
+      `WebsocketGateway: handleSendChatMessage: clientId ${client.id} message ${data.message}`,
     );
 
     // Basic validation
@@ -76,13 +115,15 @@ export class WebsocketGateway
     }
 
     try {
+      // Get chat session
       let chatSession = this.sessionService.getSession(client.id);
+
       if (!chatSession) {
-        this.logger.log(`Starting new chat session for ${client.id}`);
         chatSession = await this.geminiService.startChat(data.history || []);
         this.sessionService.createSession(client.id, chatSession);
       }
 
+      // Send message to Gemini
       let geminiResponse = await this.geminiService.sendMessageInChat(
         chatSession,
         data.message,
@@ -93,30 +134,12 @@ export class WebsocketGateway
         const functionCall = geminiResponse.functionCall;
         let toolResponseData: any;
 
+        // Get weather
         if (functionCall.name === 'get_current_weather') {
-          const location = functionCall.args.location;
-          this.logger.log(
-            `Tool call: get_current_weather for location: ${location}`,
-          );
-          const coords = await this.geocodingService.getCoordinates(location);
-          if (coords) {
-            const weather = await this.weatherService.getForecast(
-              coords.latitude,
-              coords.longitude,
-            );
-            // We might want to summarize or select specific parts of the weather for Gemini
-            // For now, sending a summary. Gemini might get overwhelmed by the full forecast array.
-            const weatherSummary =
-              weather && weather.length > 0
-                ? `Current conditions for ${coords.displayName}: ${weather[0].shortForecast}, Temperature: ${weather[0].temperature}${weather[0].temperatureUnit}`
-                : 'Could not retrieve detailed weather.';
-            toolResponseData = { weather: weatherSummary };
-          } else {
-            toolResponseData = {
-              error: `Could not find coordinates for ${location}.`,
-            };
-          }
-        } else {
+          toolResponseData = await this.handleGetWeather(functionCall);
+        }
+        // Unsupported tools
+        else {
           this.logger.warn(
             `Unknown function call requested: ${functionCall.name}`,
           );
@@ -138,7 +161,7 @@ export class WebsocketGateway
 
       if (geminiResponse.text) {
         this.logger.log(
-          `Final Gemini response for client ${client.id}: "${geminiResponse.text}"`,
+          `WebsocketGateway: handleSendChatMessage: final Gemini response for client ${client.id}: "${geminiResponse.text}"`,
         );
         client.emit('chat_response', {
           sender: 'bot',
@@ -146,7 +169,7 @@ export class WebsocketGateway
         });
       } else {
         this.logger.warn(
-          `No text response from Gemini after potential tool calls for client ${client.id}`,
+          `WebsocketGateway: handleSendChatMessage: no text response from Gemini after potential tool calls for client ${client.id}`,
         );
         client.emit('chat_response', {
           sender: 'bot',
@@ -155,7 +178,7 @@ export class WebsocketGateway
       }
     } catch (error) {
       this.logger.error(
-        `Error processing chat message for client ${client.id}: ${error.message}`,
+        `WebsocketGateway: handleSendChatMessage: error processing chat message for client ${client.id}: ${error.message}`,
         { message: data.message, error },
       );
       client.emit('chat_error', {
