@@ -1,4 +1,4 @@
-import { ChatSession, Content } from '@google/generative-ai';
+import { Content } from '@google/generative-ai';
 import { Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
@@ -15,7 +15,7 @@ import { GeminiService } from '../gemini/gemini.service';
 import { GeminiToolResponse } from '../gemini/gemini.types';
 import { GeocodingService } from '../geocoding/geocoding.service';
 import { SessionService } from '../session/session.service';
-import { WeatherService } from './weather.service';
+import { WeatherService } from '../weather/weather.service';
 
 // ----------------------------------------------------------------------
 
@@ -32,13 +32,13 @@ interface ChatRequestPayload {
   },
   // path: '/mcp-ws', // Example: if you want your WebSocket on ws://localhost:3001/mcp-ws
 })
-export class McpGateway
+export class WebsocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
   server: Server;
 
-  private logger: Logger = new Logger('McpGateway');
+  private logger: Logger = new Logger('WebsocketGateway');
 
   constructor(
     private readonly weatherService: WeatherService,

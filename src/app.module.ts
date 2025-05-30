@@ -6,6 +6,7 @@ import { GeminiModule } from './gemini/gemini.module';
 import { GeocodingModule } from './geocoding/geocoding.module';
 import { SessionModule } from './session/session.module';
 import { WeatherModule } from './weather/weather.module';
+import { WebsocketModule } from './websocket/websocket.module';
 
 // ----------------------------------------------------------------------
 
@@ -19,6 +20,7 @@ import { WeatherModule } from './weather/weather.module';
     GeocodingModule,
     SessionModule,
     WeatherModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],

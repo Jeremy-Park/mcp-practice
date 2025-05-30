@@ -1,18 +1,16 @@
-import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
-import { WeatherService } from './weather.service';
-import { WeatherController } from './weather.controller';
-import { McpGateway } from './mcp.gateway';
+import { Module } from '@nestjs/common';
 import { GeminiModule } from '../gemini/gemini.module';
 import { GeocodingModule } from '../geocoding/geocoding.module';
+import { WeatherController } from './weather.controller';
+import { WeatherService } from './weather.service';
+
+// ----------------------------------------------------------------------
 
 @Module({
-  imports: [
-    HttpModule,
-    GeminiModule,
-    GeocodingModule,
-  ],
+  imports: [HttpModule, GeminiModule, GeocodingModule],
   controllers: [WeatherController],
-  providers: [WeatherService, McpGateway],
+  providers: [WeatherService],
+  exports: [WeatherService],
 })
-export class WeatherModule {} 
+export class WeatherModule {}
