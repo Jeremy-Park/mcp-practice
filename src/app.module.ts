@@ -2,9 +2,13 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { WeatherModule } from './weather/weather.module';
 import { GeminiModule } from './gemini/gemini.module';
 import { GeocodingModule } from './geocoding/geocoding.module';
+import { SessionModule } from './session/session.module';
+import { WeatherModule } from './weather/weather.module';
+import { WebsocketModule } from './websocket/websocket.module';
+
+// ----------------------------------------------------------------------
 
 @Module({
   imports: [
@@ -12,9 +16,11 @@ import { GeocodingModule } from './geocoding/geocoding.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    WeatherModule,
     GeminiModule,
     GeocodingModule,
+    SessionModule,
+    WeatherModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],
