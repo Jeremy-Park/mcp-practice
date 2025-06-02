@@ -4,7 +4,11 @@ import { ServiceAccount } from 'firebase-admin';
 import * as path from 'path';
 
 // TODO: Add jacob's email
-const ALLOWED_EMAILS = ['ejejraks@gmail.com', 'jeremy.park@uniblock.dev'];
+const ALLOWED_EMAILS = [
+  'ejejraks@gmail.com',
+  'jeremy.park@uniblock.dev',
+  'yooshjp1@gmail.com',
+];
 
 @Global()
 @Module({
@@ -13,10 +17,10 @@ const ALLOWED_EMAILS = ['ejejraks@gmail.com', 'jeremy.park@uniblock.dev'];
       provide: 'FirebaseAdmin',
       useFactory: () => {
         const serviceAccountPath = path.join(
-          __dirname,
-          '..',
+          process.cwd(),
           'firebase-service-account-key.json',
         );
+
         // Log the path for debugging, in a real app, consider a more robust config management
         console.log(
           `Loading Firebase service account from: ${serviceAccountPath}`,

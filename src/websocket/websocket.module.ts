@@ -6,11 +6,13 @@ import { GoogleMapsModule } from '../google-maps/google-maps.module';
 import { SessionModule } from '../session/session.module';
 import { WeatherModule } from '../weather/weather.module';
 import { JikanModule } from 'src/jikan/jikan.module';
+import { FirebaseModule } from '../firebase/firebase.module';
 
 // ----------------------------------------------------------------------
 
 @Module({
   imports: [
+    FirebaseModule,
     GeminiModule,
     GeocodingModule,
     GoogleMapsModule,

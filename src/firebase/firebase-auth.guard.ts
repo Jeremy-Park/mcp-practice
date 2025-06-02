@@ -15,8 +15,23 @@ export class FirebaseAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const idToken = this.extractTokenFromHeader(request);
+    const type = context.getType<'http' | 'ws'>();
+
+    let idToken: string | undefined;
+    let clientOrRequest: any;
+
+    if (type === 'ws') {
+      const client = context.switchToWs().getClient();
+      clientOrRequest = client;
+      idToken = client.handshake.auth?.token || client.handshake.query?.token;
+    } else if (type === 'http') {
+      const request = context.switchToHttp().getRequest();
+      clientOrRequest = request;
+      idToken = this.extractTokenFromHeader(request);
+    } else {
+      // For other contexts like RPC, you might need specific handling
+      throw new UnauthorizedException('Unsupported execution context for Firebase Auth');
+    }
 
     if (!idToken) {
       throw new UnauthorizedException('No Firebase ID token provided.');
@@ -26,7 +41,13 @@ export class FirebaseAuthGuard implements CanActivate {
       const decodedToken = await this.firebaseAdmin
         .auth()
         .verifyIdToken(idToken);
-      request.user = decodedToken; // Attach user to request object
+
+      // Attach user to request object (for HTTP) or client object (for WS)
+      if (type === 'ws') {
+        clientOrRequest.user = decodedToken;
+      } else {
+        clientOrRequest.user = decodedToken; // HTTP: request.user = decodedToken
+      }
 
       if (!decodedToken.email) {
         throw new UnauthorizedException('Token does not contain an email.');
