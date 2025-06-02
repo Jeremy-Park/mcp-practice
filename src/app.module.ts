@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { GeminiModule } from './gemini/gemini.module';
 import { GeocodingModule } from './geocoding/geocoding.module';
+import { GoogleMapsModule } from './google-maps/google-maps.module';
 import { SessionModule } from './session/session.module';
 import { WeatherModule } from './weather/weather.module';
 import { WebsocketModule } from './websocket/websocket.module';
@@ -18,6 +19,7 @@ import { WebsocketModule } from './websocket/websocket.module';
     }),
     GeminiModule,
     GeocodingModule,
+    GoogleMapsModule,
     SessionModule,
     WeatherModule,
     WebsocketModule,

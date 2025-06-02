@@ -5,6 +5,8 @@ export enum GeminiToolName {
   GET_ANIME_SEARCH = 'get_anime_search',
   GET_ANIME_PICTURES = 'get_anime_pictures',
   GET_TOP_ANIME = 'get_top_anime',
+  GET_GOOGLE_MAP = 'get_google_map',
+  GET_GOOGLE_DISTANCE = 'get_google_distance',
 }
 
 export interface GeminiFunctionCall {

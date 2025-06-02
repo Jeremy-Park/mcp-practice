@@ -17,6 +17,7 @@ import {
   GeminiToolResponse,
 } from '../gemini/gemini.types';
 import { GeocodingService } from '../geocoding/geocoding.service';
+import { GoogleMapsService } from '../google-maps/google-maps.service';
 import { JikanService } from '../jikan/jikan.service';
 import { SessionService } from '../session/session.service';
 import { WeatherService } from '../weather/weather.service';
@@ -46,6 +47,7 @@ export class WebsocketGateway
     private readonly geocodingService: GeocodingService,
     private readonly sessionService: SessionService,
     private readonly jikanService: JikanService,
+    private readonly googleMapsService: GoogleMapsService,
   ) {}
 
   afterInit() {
@@ -118,6 +120,56 @@ export class WebsocketGateway
       longitude: -73.96199064785066,
       state: 'New York',
     };
+  }
+
+  async handleGetGoogleMap(
+    functionCall: GeminiFunctionCall,
+  ): Promise<Record<string, any>> {
+    const { query, location, radius } = functionCall.args;
+    this.logger.log(
+      `WebsocketGateway: handleGetGoogleMap: searching for "${query}" near "${location}" with radius ${radius}`,
+    );
+
+    try {
+      const results = await this.googleMapsService.searchPlaces(
+        query,
+        location,
+        radius,
+      );
+      return { places: results };
+    } catch (error) {
+      this.logger.error(
+        `WebsocketGateway: handleGetGoogleMap: error searching places: ${error.message}`,
+      );
+      return {
+        error: `Could not search for places: ${error.message}`,
+      };
+    }
+  }
+
+  async handleGetGoogleDistance(
+    functionCall: GeminiFunctionCall,
+  ): Promise<Record<string, any>> {
+    const { origins, destinations, mode } = functionCall.args;
+    this.logger.log(
+      `WebsocketGateway: handleGetGoogleDistance: calculating distance from "${origins}" to "${destinations}" via ${mode || 'driving'}`,
+    );
+
+    try {
+      const results = await this.googleMapsService.getDistanceMatrix(
+        origins,
+        destinations,
+        mode || 'driving',
+      );
+      return { distance_matrix: results };
+    } catch (error) {
+      this.logger.error(
+        `WebsocketGateway: handleGetGoogleDistance: error calculating distance: ${error.message}`,
+      );
+      return {
+        error: `Could not calculate distance: ${error.message}`,
+      };
+    }
   }
 
   @SubscribeMessage('send_chat_message')
@@ -199,6 +251,14 @@ export class WebsocketGateway
           toolResponseData = await this.jikanService.getTopAnime(
             functionCall.args.filter,
           );
+        }
+        // Google Maps: Search Places
+        else if (functionCall.name === GeminiToolName.GET_GOOGLE_MAP) {
+          toolResponseData = await this.handleGetGoogleMap(functionCall);
+        }
+        // Google Maps: Distance Matrix
+        else if (functionCall.name === GeminiToolName.GET_GOOGLE_DISTANCE) {
+          toolResponseData = await this.handleGetGoogleDistance(functionCall);
         }
         // Unsupported tools
         else {

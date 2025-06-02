@@ -51,6 +51,15 @@ export class GeminiService {
         text: "When answering using 'get_top_anime' tool, you must format the response in a markdown format. For each anime, display its rank, title (bold), synopsis (italic), and image (using markdown image syntax ![title Image](imageUrl)). Separate each anime entry with a horizontal rule (---). Start the list with a heading '### Top Anime List'.",
       },
       {
+        text: "When asked about places, businesses, or locations, you must use the 'get_google_map' tool.",
+      },
+      {
+        text: "When asked about distances, travel time, or directions between locations, you must use the 'get_google_distance' tool.",
+      },
+      {
+        text: "For Google Maps searches, always specify North American locations (US, Canada, Mexico) unless the user explicitly asks for other regions.",
+      },
+      {
         text: "Don't try to answer with your own knowledge, if it's about weather or anime, you must use the appropriate tool.",
       },
       {
@@ -166,6 +175,54 @@ export class GeminiService {
             nullable: true,
           },
         },
+      },
+    },
+    {
+      name: GeminiToolName.GET_GOOGLE_MAP,
+      description: 'Search for places using Google Maps Places API. Can find businesses, landmarks, and locations.',
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          query: {
+            type: Type.STRING,
+            description: 'The search query for places (e.g., "restaurants near me", "Starbucks in New York", "gas stations")',
+          },
+          location: {
+            type: Type.STRING,
+            description: 'Optional location to center the search (e.g., "New York, NY", "37.7749,-122.4194")',
+            nullable: true,
+          },
+          radius: {
+            type: Type.NUMBER,
+            description: 'Optional search radius in meters (default: 5000, max: 50000)',
+            nullable: true,
+          },
+        },
+        required: ['query'],
+      },
+    },
+    {
+      name: GeminiToolName.GET_GOOGLE_DISTANCE,
+      description: 'Calculate distance and travel time between locations using Google Maps Distance Matrix API.',
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          origins: {
+            type: Type.STRING,
+            description: 'Starting location(s) - can be address, place name, or coordinates',
+          },
+          destinations: {
+            type: Type.STRING,
+            description: 'Destination location(s) - can be address, place name, or coordinates',
+          },
+          mode: {
+            type: Type.STRING,
+            description: 'Travel mode for distance calculation',
+            enum: ['driving', 'walking', 'bicycling', 'transit'],
+            nullable: true,
+          },
+        },
+        required: ['origins', 'destinations'],
       },
     },
   ];
