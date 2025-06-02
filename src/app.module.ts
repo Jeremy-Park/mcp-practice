@@ -7,6 +7,7 @@ import { GeminiModule } from './gemini/gemini.module';
 import { GeocodingModule } from './geocoding/geocoding.module';
 import { GoogleMapsModule } from './google-maps/google-maps.module';
 import { SessionModule } from './session/session.module';
+import { UserModule } from './user/user.module';
 import { WeatherModule } from './weather/weather.module';
 import { WebsocketModule } from './websocket/websocket.module';
 
@@ -25,6 +26,7 @@ import { WebsocketModule } from './websocket/websocket.module';
     WeatherModule,
     WebsocketModule,
     FirebaseModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],
