@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -10,6 +10,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { FirebaseAuthGuard } from '../firebase/firebase-auth.guard';
 import { GeminiService } from '../gemini/gemini.service';
 import {
   GeminiFunctionCall,
@@ -27,6 +28,7 @@ import { ChatRequestPayload } from './websocket.types';
 
 // You can specify a port and namespace, or let it use the default HTTP server port
 // @WebSocketGateway(3001, { namespace: 'mcp', cors: { origin: '*' } })
+@UseGuards(FirebaseAuthGuard)
 @WebSocketGateway({
   cors: {
     origin: '*', // Allow all origins for now, you might want to restrict this in production
