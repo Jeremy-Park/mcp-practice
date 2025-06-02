@@ -47,4 +47,4 @@ Thumbs.db
 .env.*.local 
 
 # Firebase
-src/firebase-service-account-key.json
+firebase-service-account-key.json
