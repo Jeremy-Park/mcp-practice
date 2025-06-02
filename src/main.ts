@@ -6,6 +6,7 @@ const port = process.env.PORT || 3001;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors(); // Enable CORS
   // If you want to enable a global prefix for all HTTP routes (e.g., /api)
   // app.setGlobalPrefix('api');
 
