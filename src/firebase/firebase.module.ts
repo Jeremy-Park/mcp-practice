@@ -16,21 +16,45 @@ const ALLOWED_EMAILS = [
     {
       provide: 'FirebaseAdmin',
       useFactory: () => {
-        const serviceAccountPath = path.join(
-          process.cwd(),
-          'firebase-service-account-key.json',
-        );
+        const firebaseServiceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+        let serviceAccount: ServiceAccount;
 
-        // Log the path for debugging, in a real app, consider a more robust config management
-        console.log(
-          `Loading Firebase service account from: ${serviceAccountPath}`,
-        );
+        if (firebaseServiceAccountJson) {
+          console.log('Loading Firebase service account from environment variable.');
+          try {
+            serviceAccount = JSON.parse(firebaseServiceAccountJson);
+          } catch (error) {
+            console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON:', error);
+            throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON.');
+          }
+        } else {
+          console.warn(
+            'FIREBASE_SERVICE_ACCOUNT_JSON environment variable not found. Falling back to local file.',
+          );
+          const serviceAccountPath = path.join(
+            process.cwd(),
+            'firebase-service-account-key.json',
+          );
+          console.log(
+            `Loading Firebase service account from: ${serviceAccountPath}`,
+          );
+          try {
+            serviceAccount = require(serviceAccountPath) as ServiceAccount;
+          } catch (error) {
+            console.error(`Failed to load service account from ${serviceAccountPath}:`, error);
+            throw new Error(
+              `Could not load Firebase service account. Ensure firebase-service-account-key.json is in the root or FIREBASE_SERVICE_ACCOUNT_JSON is set.`,
+            );
+          }
+        }
 
-        const serviceAccount = require(serviceAccountPath) as ServiceAccount;
-
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-        });
+        if (admin.apps.length === 0) { // Initialize only if no apps are present
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+          });
+        } else {
+          console.warn('Firebase app already initialized. Skipping initialization.');
+        }
         return admin;
       },
     },
