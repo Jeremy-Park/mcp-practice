@@ -20,7 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "engines": {
-    "node": "20.0.0"
+    "node": "^20.0.0"
   },
   "dependencies": {
     "@google/genai": "^1.2.0",
