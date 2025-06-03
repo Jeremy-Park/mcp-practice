@@ -1,4 +1,4 @@
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger, UseGuards, HttpException } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -11,6 +11,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { FirebaseAuthGuard } from '../firebase/firebase-auth.guard';
+import { FirebaseUserType } from '../common/decorators/firebase-user.decorator';
 import { GeminiService } from '../gemini/gemini.service';
 import {
   GeminiFunctionCall,
@@ -22,7 +23,13 @@ import { GoogleMapsService } from '../google-maps/google-maps.service';
 import { JikanService } from '../jikan/jikan.service';
 import { SessionService } from '../session/session.service';
 import { WeatherService } from '../weather/weather.service';
+import { RealtorService } from '../realtor/realtor.service';
 import { ChatRequestPayload } from './websocket.types';
+
+// Define an interface for Sockets that have a user property
+interface AuthenticatedSocket extends Socket {
+  user?: FirebaseUserType; // user property will be populated by FirebaseAuthGuard
+}
 
 // ----------------------------------------------------------------------
 
@@ -30,9 +37,9 @@ import { ChatRequestPayload } from './websocket.types';
 // @WebSocketGateway(3001, { namespace: 'mcp', cors: { origin: '*' } })
 @UseGuards(FirebaseAuthGuard)
 @WebSocketGateway({
-  cors: {
-    origin: '*', // Allow all origins for now, you might want to restrict this in production
-  },
+  // cors: {
+  //   origin: '*', // Allow all origins for now, you might want to restrict this in production
+  // },
   // path: '/mcp-ws', // Example: if you want your WebSocket on ws://localhost:3001/mcp-ws
 })
 export class WebsocketGateway
@@ -50,17 +57,18 @@ export class WebsocketGateway
     private readonly sessionService: SessionService,
     private readonly jikanService: JikanService,
     private readonly googleMapsService: GoogleMapsService,
+    private readonly realtorService: RealtorService,
   ) {}
 
   afterInit() {
     this.logger.log('WebSocket Gateway Initialized');
   }
 
-  handleConnection(client: Socket) {
+  handleConnection(client: AuthenticatedSocket) {
     this.logger.log(`Client connected: ${client.id}`);
   }
 
-  handleDisconnect(client: Socket) {
+  handleDisconnect(client: AuthenticatedSocket) {
     this.logger.log(`Client disconnected: ${client.id}`);
     this.sessionService.deleteSession(client.id);
   }
@@ -177,93 +185,121 @@ export class WebsocketGateway
   @SubscribeMessage('send_chat_message')
   async handleSendChatMessage(
     @MessageBody() data: ChatRequestPayload,
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: AuthenticatedSocket,
   ): Promise<void> {
     this.logger.log(
       `WebsocketGateway: handleSendChatMessage: clientId ${client.id} message ${data.message}`,
     );
 
-    // Basic validation
     if (!data || !data.message || data.message.trim() === '') {
       client.emit('chat_error', { error: 'Cannot send an empty message.' });
       return;
     }
 
-    try {
-      // Get chat session
-      let chatSession = this.sessionService.getSession(client.id);
+    // Ensure user is authenticated for tool use that requires user context
+    const firebaseUser = client.user;
 
+    try {
+      let chatSession = this.sessionService.getSession(client.id);
       if (!chatSession) {
         chatSession = await this.geminiService.startChat(data.history || []);
         this.sessionService.createSession(client.id, chatSession);
       }
 
-      // Send message to Gemini
       let geminiResponse = await this.geminiService.sendMessageInChat(
         chatSession,
         data.message,
       );
 
-      // Loop to handle potential multiple function calls (though typically one at a time)
       while (geminiResponse.functionCall) {
         const functionCall = geminiResponse.functionCall;
         let toolResponseData: any;
 
-        // Get weather
         if (functionCall.name === GeminiToolName.GET_CURRENT_WEATHER) {
           toolResponseData = await this.handleGetWeather(functionCall);
-        }
-        // Get mock user coordinates
-        else if (functionCall.name === GeminiToolName.GET_USER_LOCATION) {
+        } else if (functionCall.name === GeminiToolName.GET_USER_LOCATION) {
           toolResponseData = await this.handleGetUserLocation();
-        }
-        // Jikan: Get Anime By ID
-        else if (functionCall.name === GeminiToolName.GET_ANIME_BY_ID) {
+        } else if (functionCall.name === GeminiToolName.GET_ANIME_BY_ID) {
           this.logger.log(
-            `WebsocketGateway: handleSendChatMessage: tool call get_anime_by_id for ID: ${functionCall.args.id}`,
+            `Tool call get_anime_by_id for ID: ${functionCall.args.id}`,
           );
           toolResponseData = await this.jikanService.getAnimeById(
             functionCall.args.id,
           );
-        }
-        // Jikan: Get Anime Search
-        else if (functionCall.name === GeminiToolName.GET_ANIME_SEARCH) {
+        } else if (functionCall.name === GeminiToolName.GET_ANIME_SEARCH) {
           this.logger.log(
-            `WebsocketGateway: handleSendChatMessage: tool call get_anime_search for query: ${functionCall.args.query}, status: ${functionCall.args.status}`,
+            `Tool call get_anime_search for query: ${functionCall.args.query}, status: ${functionCall.args.status}`,
           );
           toolResponseData = await this.jikanService.getAnimeSearch(
             functionCall.args.query,
             functionCall.args.status,
           );
-        }
-        // Jikan: Get Anime Pictures
-        else if (functionCall.name === GeminiToolName.GET_ANIME_PICTURES) {
+        } else if (functionCall.name === GeminiToolName.GET_ANIME_PICTURES) {
           this.logger.log(
-            `WebsocketGateway: handleSendChatMessage: tool call get_anime_pictures for ID: ${functionCall.args.id}`,
+            `Tool call get_anime_pictures for ID: ${functionCall.args.id}`,
           );
           toolResponseData = await this.jikanService.getAnimePictures(
             functionCall.args.id,
           );
-        }
-        // Jikan: Get Top Anime
-        else if (functionCall.name === GeminiToolName.GET_TOP_ANIME) {
+        } else if (functionCall.name === GeminiToolName.GET_TOP_ANIME) {
           this.logger.log(
-            `WebsocketGateway: handleSendChatMessage: tool call get_top_anime with filter: ${functionCall.args.filter}`,
+            `Tool call get_top_anime with filter: ${functionCall.args.filter}`,
           );
           toolResponseData = await this.jikanService.getTopAnime(
             functionCall.args.filter,
           );
-        }
-        // Google Maps: Search Places
-        else if (functionCall.name === GeminiToolName.GET_GOOGLE_MAP) {
+        } else if (functionCall.name === GeminiToolName.GET_GOOGLE_MAP) {
           toolResponseData = await this.handleGetGoogleMap(functionCall);
-        }
-        // Google Maps: Distance Matrix
-        else if (functionCall.name === GeminiToolName.GET_GOOGLE_DISTANCE) {
+        } else if (functionCall.name === GeminiToolName.GET_GOOGLE_DISTANCE) {
           toolResponseData = await this.handleGetGoogleDistance(functionCall);
-        }
-        // Unsupported tools
-        else {
+        } else if (functionCall.name === GeminiToolName.GET_MY_REALTOR_PROFILE) {
+          this.logger.log('Tool call get_my_realtor_profile');
+          if (!firebaseUser || !firebaseUser.email) {
+            this.logger.warn(
+              'GET_MY_REALTOR_PROFILE tool called but no authenticated user email found.',
+            );
+            toolResponseData = {
+              error:
+                'User authentication (email) not found. Cannot fetch realtor profile.',
+            };
+          } else {
+            try {
+              const realtorProfile = await this.realtorService.getRealtorByEmail(
+                firebaseUser.email,
+              );
+
+              if (!realtorProfile) {
+                // This case should ideally not be hit if getRealtorByEmail throws NotFoundException as intended.
+                this.logger.warn(
+                  `Realtor profile not found for ${firebaseUser.email} via service call, though an exception was expected.`
+                );
+                toolResponseData = {
+                  info: 'No realtor profile found for your account.',
+                };
+              } else {
+                toolResponseData = {
+                  id: realtorProfile.id,
+                  email: realtorProfile.email,
+                  name: realtorProfile.name,
+                };
+                this.logger.log(`Realtor profile found for ${firebaseUser.email}: ${JSON.stringify(toolResponseData)}`);
+              }
+            } catch (error) {
+              this.logger.error(
+                `Error fetching realtor profile for ${firebaseUser.email}: ${error.message}`,
+              );
+              if (error instanceof HttpException && error.getStatus() === 404) {
+                 toolResponseData = {
+                    info: 'No realtor profile found for your account. A new profile will be created if you use features that require one.',
+                 };
+              } else {
+                toolResponseData = {
+                    error: 'Could not retrieve your realtor profile at this time.',
+                };
+              }
+            }
+          }
+        } else {
           this.logger.warn(
             `Unknown function call requested: ${functionCall.name}`,
           );
@@ -284,17 +320,11 @@ export class WebsocketGateway
       }
 
       if (geminiResponse.text) {
-        this.logger.log(
-          `WebsocketGateway: handleSendChatMessage: final Gemini response for client ${client.id}: "${geminiResponse.text}"`,
-        );
         client.emit('chat_response', {
           sender: 'bot',
           message: geminiResponse.text,
         });
       } else {
-        this.logger.warn(
-          `WebsocketGateway: handleSendChatMessage: no text response from Gemini after potential tool calls for client ${client.id}`,
-        );
         client.emit('chat_response', {
           sender: 'bot',
           message: "I couldn't process that request fully, but I'm here!",
@@ -302,7 +332,7 @@ export class WebsocketGateway
       }
     } catch (error) {
       this.logger.error(
-        `WebsocketGateway: handleSendChatMessage: error processing chat message for client ${client.id}: ${error.message}`,
+        `Error processing chat message for client ${client.id}: ${error.message}`,
         { message: data.message, error },
       );
       client.emit('chat_error', {

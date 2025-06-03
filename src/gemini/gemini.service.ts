@@ -60,7 +60,10 @@ export class GeminiService {
         text: "For Google Maps searches, always specify North American locations (US, Canada, Mexico) unless the user explicitly asks for other regions.",
       },
       {
-        text: "Don't try to answer with your own knowledge, if it's about weather or anime, you must use the appropriate tool.",
+        text: "When the user asks for their own realtor profile, their profile, or 'my profile', you must use the 'get_my_realtor_profile' tool.",
+      },
+      {
+        text: "Don't try to answer with your own knowledge, if it's about weather, anime, or the user's realtor profile, you must use the appropriate tool.",
       },
       {
         text: 'Always use the appropriate tool.',
@@ -129,7 +132,6 @@ export class GeminiService {
       name: GeminiToolName.GET_ANIME_SEARCH,
       description:
         'Search for anime by query string. Can optionally filter by status.',
-      // TODO: Add more params
       parameters: {
         type: Type.OBJECT,
         properties: {
@@ -224,6 +226,12 @@ export class GeminiService {
         },
         required: ['origins', 'destinations'],
       },
+    },
+    {
+      name: GeminiToolName.GET_MY_REALTOR_PROFILE,
+      description:
+        "Get the currently authenticated user's realtor profile. This tool does not require any parameters from the user.",
+      // No parameters needed as the user context is derived from the authenticated session.
     },
   ];
 
