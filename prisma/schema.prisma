@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TeamRole {
+  OWNER
+  MEMBER
+}
+
+enum ClientStatus {
+  NEW
+  IN_PROGRESS
+  CLOSED
+}
+
+model Realtor {
+  id        Int           @id @default(autoincrement())
+  email     String        @unique
+  name      String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  deleted   Boolean       @default(false)
+  teams     TeamRealtor[]
+
+  @@map("realtors")
+}
+
+model Team {
+  id        Int           @id @default(autoincrement())
+  name      String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  deleted   Boolean       @default(false)
+  realtors  TeamRealtor[]
+  clients   TeamClient[]
+
+  @@map("teams")
+}
+
+model Client {
+  id         Int          @id @default(autoincrement())
+  firstName  String
+  middleName String?
+  lastName   String
+  email      String?
+  phone      String?
+  status     ClientStatus @default(NEW)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  deleted    Boolean      @default(false)
+  teams      TeamClient[]
+
+  @@map("clients")
+}
+
+model TeamRealtor {
+  id        Int      @id @default(autoincrement())
+  teamId    Int
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  realtorId Int
+  realtor   Realtor  @relation(fields: [realtorId], references: [id], onDelete: Cascade)
+  role      TeamRole @default(MEMBER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teamId, realtorId])
+  @@index([teamId])
+  @@index([realtorId])
+  @@map("team_realtors")
+}
+
+model TeamClient {
+  id         Int      @id @default(autoincrement())
+  teamId     Int
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  clientId   Int
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([teamId, clientId])
+  @@index([teamId])
+  @@index([clientId])
+  @@map("team_clients")
+}
