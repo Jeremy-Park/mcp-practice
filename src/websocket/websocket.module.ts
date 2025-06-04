@@ -8,6 +8,7 @@ import { GoogleMapsModule } from '../google-maps/google-maps.module';
 import { SessionModule } from '../session/session.module';
 import { WeatherModule } from '../weather/weather.module';
 import { WebsocketGateway } from './websocket.gateway';
+import { WebsocketService } from './websocket.service';
 
 // ----------------------------------------------------------------------
 
@@ -22,6 +23,7 @@ import { WebsocketGateway } from './websocket.gateway';
     SessionModule,
     WeatherModule,
   ],
-  providers: [WebsocketGateway],
+  providers: [WebsocketGateway, WebsocketService],
+  exports: [WebsocketService],
 })
 export class WebsocketModule {}
