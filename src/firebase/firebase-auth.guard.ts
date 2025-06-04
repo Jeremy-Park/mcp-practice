@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 
+// ----------------------------------------------------------------------
+
 @Injectable()
 export class FirebaseAuthGuard implements CanActivate {
   constructor(
@@ -30,7 +32,9 @@ export class FirebaseAuthGuard implements CanActivate {
       idToken = this.extractTokenFromHeader(request);
     } else {
       // For other contexts like RPC, you might need specific handling
-      throw new UnauthorizedException('Unsupported execution context for Firebase Auth');
+      throw new UnauthorizedException(
+        'Unsupported execution context for Firebase Auth',
+      );
     }
 
     if (!idToken) {
@@ -42,14 +46,14 @@ export class FirebaseAuthGuard implements CanActivate {
         .auth()
         .verifyIdToken(idToken);
 
-      // Attach user to request object (for HTTP) or client object (for WS)
-      if (type === 'ws') {
-        clientOrRequest.user = decodedToken;
-      } else {
-        clientOrRequest.user = decodedToken; // HTTP: request.user = decodedToken
-      }
+      // Attach user to request object
+      clientOrRequest.user = decodedToken;
 
       if (!decodedToken.email) {
+        throw new UnauthorizedException('Token does not contain an email.');
+      }
+
+      if (!decodedToken.uid) {
         throw new UnauthorizedException('Token does not contain an email.');
       }
 
