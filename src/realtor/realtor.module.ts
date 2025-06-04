@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
-import { RealtorService } from './realtor.service';
-import { RealtorRepository } from './realtor.repository';
 import { RealtorController } from './realtor.controller';
-// We will add RealtorController here later if needed
+import { RealtorRepository } from './realtor.repository';
+import { RealtorService } from './realtor.service';
+
+// ----------------------------------------------------------------------
 
 @Module({
-  imports: [], // PrismaModule is global, so no need to import here
+  imports: [],
   controllers: [RealtorController],
   providers: [RealtorService, RealtorRepository],
-  exports: [RealtorService], // Export service for use in other modules (e.g., TeamModule)
+  exports: [RealtorService],
 })
-export class RealtorModule {} 
+export class RealtorModule {}
