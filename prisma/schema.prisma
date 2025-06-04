@@ -26,13 +26,14 @@ enum ClientStatus {
 }
 
 model Realtor {
-  id        Int           @id @default(autoincrement())
-  email     String        @unique
-  name      String?
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  deleted   Boolean       @default(false)
-  teams     TeamRealtor[]
+  id Int @id @default(autoincrement())
+  email       String        @unique
+  firebaseUid String        @unique
+  name        String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deleted     Boolean       @default(false)
+  teams       TeamRealtor[]
 
   @@map("realtors")
 }

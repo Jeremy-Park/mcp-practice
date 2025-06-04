@@ -15,7 +15,6 @@ export const FirebaseUser = createParamDecorator(
 // Simplified object based on what Firebase Admin SDK provides
 export interface FirebaseUserType {
   email?: string;
-  email_verified?: boolean;
   name?: string;
   picture?: string;
   uid: string;

@@ -18,6 +18,12 @@ export class RealtorRepository {
     });
   }
 
+  async findByFirebaseUid(firebaseUid: string): Promise<Realtor | null> {
+    return this.prisma.realtor.findUnique({
+      where: { deleted: false, firebaseUid },
+    });
+  }
+
   async findById(id: number): Promise<Realtor | null> {
     return this.prisma.realtor.findUnique({
       where: { deleted: false, id },

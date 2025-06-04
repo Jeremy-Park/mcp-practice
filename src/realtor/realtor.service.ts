@@ -18,6 +18,16 @@ export class RealtorService {
     return realtor;
   }
 
+  async findByFirebaseUid(firebaseUid: string): Promise<Realtor> {
+    const realtor = await this.realtorRepository.findByFirebaseUid(firebaseUid);
+
+    if (!realtor) {
+      throw new NotFoundException(`Realtor not found`);
+    }
+
+    return realtor;
+  }
+
   async findById(id: number): Promise<Realtor> {
     const realtor = await this.realtorRepository.findById(id);
 
@@ -29,20 +39,28 @@ export class RealtorService {
   }
 
   // Auto-create realtor object for signed in users
-  async signInRealtor(email: string, name?: string): Promise<Realtor> {
+  async signInRealtor({
+    email,
+    firebaseUid,
+    name,
+  }: {
+    email: string;
+    firebaseUid: string;
+    name: string;
+  }): Promise<Realtor> {
     // Check if the realtor exists
-    const realtor = await this.realtorRepository.findByEmail(email);
+    const realtor = await this.realtorRepository.findByEmail(firebaseUid);
 
     if (realtor) {
       return realtor;
     }
 
     // If the realtor doesn't exist, create a new one
-    const createData: Prisma.RealtorCreateInput = { email };
-
-    if (name) {
-      createData.name = name;
-    }
+    const createData: Prisma.RealtorCreateInput = {
+      email,
+      firebaseUid,
+      name,
+    };
 
     const newRealtor = await this.realtorRepository.create(createData);
     return newRealtor;

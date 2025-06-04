@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  HttpException,
-  HttpStatus,
-  Logger,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { Realtor } from '../../generated/prisma';
 import {
   FirebaseUser,
@@ -15,41 +7,28 @@ import {
 import { FirebaseAuthGuard } from '../firebase/firebase-auth.guard';
 import { RealtorService } from './realtor.service';
 
+// ----------------------------------------------------------------------
+
 @UseGuards(FirebaseAuthGuard)
 @Controller('realtors')
 export class RealtorController {
-  private readonly logger = new Logger(RealtorController.name);
-
   constructor(private readonly realtorService: RealtorService) {}
 
-  @Post('sign-in')
-  async signInRealtorController(
-    @FirebaseUser() firebaseUser: FirebaseUserType,
-  ): Promise<Realtor> {
-    if (!firebaseUser || !firebaseUser.email) {
-      throw new HttpException(
-        'Email not found in authentication token.',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    return this.realtorService.signInRealtor(
-      firebaseUser.email,
-      firebaseUser.name,
-    );
-  }
-
   @Get('me')
-  async getMyRealtor(
+  async getMe(
     @FirebaseUser() firebaseUser: FirebaseUserType,
   ): Promise<Realtor | null> {
-    if (!firebaseUser || !firebaseUser.email) {
-      throw new HttpException(
-        'Email not found in authentication token.',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+    return this.realtorService.findByFirebaseUid(firebaseUser.uid);
+  }
 
-    return this.realtorService.getRealtorByEmail(firebaseUser.email);
+  @Post('sign-in')
+  async signIn(
+    @FirebaseUser() firebaseUser: FirebaseUserType,
+  ): Promise<Realtor> {
+    return this.realtorService.signInRealtor({
+      email: firebaseUser?.email ?? '',
+      firebaseUid: firebaseUser.uid,
+      name: firebaseUser?.name ?? '',
+    });
   }
 }
