@@ -1,68 +1,70 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsEmail,
-  IsEnum,
-  MaxLength,
-  IsPhoneNumber
-} from 'class-validator';
-import { ClientStatus } from '../../../generated/prisma';
+// import {
+//   IsString,
+//   IsNotEmpty,
+//   IsOptional,
+//   IsEmail,
+//   IsEnum,
+//   MaxLength,
+//   IsPhoneNumber
+// } from 'class-validator';
+// import { ClientStatus } from '../../../generated/prisma';
 
-export class CreateClientDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  firstName: string;
+// ----------------------------------------------------------------------
 
-  @IsString()
-  @IsOptional()
-  @MaxLength(100)
-  middleName?: string;
+// export class CreateClientDto {
+//   @IsString()
+//   @IsNotEmpty()
+//   @MaxLength(100)
+//   firstName: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  lastName: string;
+//   @IsString()
+//   @IsOptional()
+//   @MaxLength(100)
+//   middleName?: string;
 
-  @IsEmail()
-  @IsOptional()
-  email?: string;
+//   @IsString()
+//   @IsNotEmpty()
+//   @MaxLength(100)
+//   lastName: string;
 
-  @IsPhoneNumber(undefined) // Allow any valid international phone number
-  @IsOptional()
-  phone?: string;
+//   @IsEmail()
+//   @IsOptional()
+//   email?: string;
 
-  @IsEnum(ClientStatus)
-  @IsOptional()
-  status?: ClientStatus = ClientStatus.NEW;
-}
+//   @IsPhoneNumber(undefined) // Allow any valid international phone number
+//   @IsOptional()
+//   phone?: string;
 
-export class UpdateClientDto {
-  @IsString()
-  @IsOptional()
-  @MaxLength(100)
-  firstName?: string;
+//   @IsEnum(ClientStatus)
+//   @IsOptional()
+//   status?: ClientStatus = ClientStatus.NEW;
+// }
 
-  @IsString()
-  @IsOptional()
-  @MaxLength(100)
-  middleName?: string;
+// export class UpdateClientDto {
+//   @IsString()
+//   @IsOptional()
+//   @MaxLength(100)
+//   firstName?: string;
 
-  @IsString()
-  @IsOptional()
-  @MaxLength(100)
-  lastName?: string;
+//   @IsString()
+//   @IsOptional()
+//   @MaxLength(100)
+//   middleName?: string;
 
-  @IsEmail()
-  @IsOptional()
-  email?: string;
+//   @IsString()
+//   @IsOptional()
+//   @MaxLength(100)
+//   lastName?: string;
 
-  @IsPhoneNumber(undefined) // Allow any valid international phone number
-  @IsOptional()
-  phone?: string;
+//   @IsEmail()
+//   @IsOptional()
+//   email?: string;
 
-  @IsEnum(ClientStatus)
-  @IsOptional()
-  status?: ClientStatus;
-} 
+//   @IsPhoneNumber(undefined) // Allow any valid international phone number
+//   @IsOptional()
+//   phone?: string;
+
+//   @IsEnum(ClientStatus)
+//   @IsOptional()
+//   status?: ClientStatus;
+// }
