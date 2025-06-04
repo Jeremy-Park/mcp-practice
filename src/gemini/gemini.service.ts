@@ -29,6 +29,10 @@ export class GeminiService {
       {
         text: 'You are a helpful assistant.',
       },
+      // @Jacob, you can remove this if it's causing issues
+      {
+        text: 'User is a realtor.',
+      },
       {
         text: "When asked about the user's current location, you must use the 'get_user_location' tool.",
       },
@@ -57,10 +61,16 @@ export class GeminiService {
         text: "When asked about distances, travel time, or directions between locations, you must use the 'get_google_distance' tool.",
       },
       {
-        text: "For Google Maps searches, always specify North American locations (US, Canada, Mexico) unless the user explicitly asks for other regions.",
+        text: 'For Google Maps searches, always specify North American locations (US, Canada, Mexico) unless the user explicitly asks for other regions.',
       },
       {
         text: "When the user asks for their own realtor profile, their profile, or 'my profile', you must use the 'get_my_realtor_profile' tool.",
+      },
+      {
+        text: "When the user asks to update their name, or their realtor name, you must use the 'update_realtor_name' tool.",
+      },
+      {
+        text: 'When returning email addresses, return the exact email address.',
       },
       {
         text: "Don't try to answer with your own knowledge, if it's about weather, anime, or the user's realtor profile, you must use the appropriate tool.",
@@ -166,13 +176,15 @@ export class GeminiService {
     },
     {
       name: GeminiToolName.GET_TOP_ANIME,
-      description: 'Get the top anime series, optionally filtered by a specific criterion.',
+      description:
+        'Get the top anime series, optionally filtered by a specific criterion.',
       parameters: {
         type: Type.OBJECT,
         properties: {
           filter: {
             type: Type.STRING,
-            description: "Filter criteria for top anime. Available values: 'airing', 'upcoming', 'bypopularity', 'favorite'.",
+            description:
+              "Filter criteria for top anime. Available values: 'airing', 'upcoming', 'bypopularity', 'favorite'.",
             enum: ['airing', 'upcoming', 'bypopularity', 'favorite'],
             nullable: true,
           },
@@ -181,22 +193,26 @@ export class GeminiService {
     },
     {
       name: GeminiToolName.GET_GOOGLE_MAP,
-      description: 'Search for places using Google Maps Places API. Can find businesses, landmarks, and locations.',
+      description:
+        'Search for places using Google Maps Places API. Can find businesses, landmarks, and locations.',
       parameters: {
         type: Type.OBJECT,
         properties: {
           query: {
             type: Type.STRING,
-            description: 'The search query for places (e.g., "restaurants near me", "Starbucks in New York", "gas stations")',
+            description:
+              'The search query for places (e.g., "restaurants near me", "Starbucks in New York", "gas stations")',
           },
           location: {
             type: Type.STRING,
-            description: 'Optional location to center the search (e.g., "New York, NY", "37.7749,-122.4194")',
+            description:
+              'Optional location to center the search (e.g., "New York, NY", "37.7749,-122.4194")',
             nullable: true,
           },
           radius: {
             type: Type.NUMBER,
-            description: 'Optional search radius in meters (default: 5000, max: 50000)',
+            description:
+              'Optional search radius in meters (default: 5000, max: 50000)',
             nullable: true,
           },
         },
@@ -205,17 +221,20 @@ export class GeminiService {
     },
     {
       name: GeminiToolName.GET_GOOGLE_DISTANCE,
-      description: 'Calculate distance and travel time between locations using Google Maps Distance Matrix API.',
+      description:
+        'Calculate distance and travel time between locations using Google Maps Distance Matrix API.',
       parameters: {
         type: Type.OBJECT,
         properties: {
           origins: {
             type: Type.STRING,
-            description: 'Starting location(s) - can be address, place name, or coordinates',
+            description:
+              'Starting location(s) - can be address, place name, or coordinates',
           },
           destinations: {
             type: Type.STRING,
-            description: 'Destination location(s) - can be address, place name, or coordinates',
+            description:
+              'Destination location(s) - can be address, place name, or coordinates',
           },
           mode: {
             type: Type.STRING,
@@ -231,7 +250,32 @@ export class GeminiService {
       name: GeminiToolName.GET_MY_REALTOR_PROFILE,
       description:
         "Get the currently authenticated user's realtor profile. This tool does not require any parameters from the user.",
-      // No parameters needed as the user context is derived from the authenticated session.
+      response: {
+        type: Type.OBJECT,
+        properties: {
+          email: { type: Type.STRING },
+          name: { type: Type.STRING },
+        },
+      },
+    },
+    {
+      name: GeminiToolName.UPDATE_REALTOR_NAME,
+      description:
+        "Update the currently authenticated user's realtor profile name. This tool does not require any parameters from the user.",
+      parameters: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+        },
+        required: ['name'],
+      },
+      response: {
+        type: Type.OBJECT,
+        properties: {
+          email: { type: Type.STRING },
+          name: { type: Type.STRING },
+        },
+      },
     },
   ];
 

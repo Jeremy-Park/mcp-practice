@@ -8,6 +8,7 @@ export enum GeminiToolName {
   GET_MY_REALTOR_PROFILE = 'get_my_realtor_profile',
   GET_TOP_ANIME = 'get_top_anime',
   GET_USER_LOCATION = 'get_user_location',
+  UPDATE_REALTOR_NAME = 'update_realtor_name',
 }
 
 export interface GeminiFunctionCall {
