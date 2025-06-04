@@ -130,6 +130,13 @@ export class WebsocketGateway
             toolResponseData =
               await this.websocketService.handleGetUserLocation();
             break;
+          case GeminiToolName.UPDATE_REALTOR_NAME:
+            toolResponseData =
+              await this.websocketService.handleUpdateRealtorName(
+                firebaseUser,
+                functionCall,
+              );
+            break;
           default:
             this.logger.warn(
               `Unknown function call requested: ${functionCall.name}`,
