@@ -1,25 +1,22 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
-/**
- * Custom decorator to extract the Firebase user object from the request.
- * Assumes that a guard (like FirebaseAuthGuard) has already populated `req.user`.
- */
+// ----------------------------------------------------------------------
+
+// FirebaseAuthGuard populates `req.user` with the Firebase user object
+// This decorator extracts the user object from the request
 export const FirebaseUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
-    return request.user; // The Firebase user object attached by FirebaseAuthGuard
+    return request.user;
   },
 );
 
-/**
- * Interface for the Firebase user object (you might want to expand this based on your needs).
- * This is a minimal version based on what Firebase Admin SDK typically provides after token verification.
- */
+// Interface for the Firebase user object
+// Simplified object based on what Firebase Admin SDK provides
 export interface FirebaseUserType {
-  uid: string;
   email?: string;
   email_verified?: boolean;
   name?: string;
   picture?: string;
-  // Add other fields from the decoded Firebase token as needed
-} 
+  uid: string;
+}
