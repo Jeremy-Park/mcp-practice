@@ -9,8 +9,8 @@ import { GeocodingModule } from './geocoding/geocoding.module';
 import { GoogleMapsModule } from './google-maps/google-maps.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RealtorModule } from './realtor/realtor.module';
-import { TeamModule } from './team/team.module';
 import { SessionModule } from './session/session.module';
+import { TeamModule } from './team/team.module';
 import { UserModule } from './user/user.module';
 import { WeatherModule } from './weather/weather.module';
 import { WebsocketModule } from './websocket/websocket.module';
@@ -18,25 +18,30 @@ import { WebsocketModule } from './websocket/websocket.module';
 // ----------------------------------------------------------------------
 
 @Module({
+  controllers: [AppController],
   imports: [
+    // Config first
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
     }),
+
+    // Database, auth modules
+    FirebaseModule,
     PrismaModule,
-    RealtorModule,
-    TeamModule,
+
+    // Rest of modules
     ClientModule,
     GeminiModule,
     GeocodingModule,
     GoogleMapsModule,
+    RealtorModule,
     SessionModule,
+    TeamModule,
+    UserModule,
     WeatherModule,
     WebsocketModule,
-    FirebaseModule,
-    UserModule,
   ],
-  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
