@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { TeamService } from './team.service';
+import { RealtorModule } from '../realtor/realtor.module';
 import { TeamRepository } from './team.repository';
-import { RealtorModule } from '../realtor/realtor.module'; // Import RealtorModule as TeamService depends on RealtorService
+import { TeamService } from './team.service';
+
+// ----------------------------------------------------------------------
 
 @Module({
-  imports: [RealtorModule], // TeamService needs RealtorService
-  providers: [TeamService, TeamRepository],
+  imports: [RealtorModule],
+  providers: [TeamRepository, TeamService],
   exports: [TeamService],
-  // We will add TeamController here later if needed
 })
-export class TeamModule {} 
+export class TeamModule {}
